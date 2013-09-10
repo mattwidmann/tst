@@ -63,6 +63,8 @@ TST_SUITE(calloc)
 int main(int argc, char * argv[])
 {
     TST_MAIN(argc, argv);
+
+    TST_RUN_SUITE(calloc);
 }
 ```
 
