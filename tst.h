@@ -48,6 +48,7 @@ static void (*tst_setup)(void * data);
 static void * tst_setup_data;
 static void (*tst_teardown)(void * data);
 static void * tst_teardown_data;
+// TODO rework progress struct
 static struct tst_progress tst_progress = {
     /* suite_name */   NULL,
     /* test_name */    NULL,
@@ -66,12 +67,6 @@ static void tst_default_reporter(struct tst_progress * progress)
 {
     if (progress == NULL)
         return;
-    // static unsigned int passed = 0;
-    // static unsigned int failed = 0;
-    // static unsigned int crashed = 0;
-
-    // static unsigned int suite_ms = 0;
-    // static unsigned int total_ms = 0;
 
     if (progress->test_in_suite != 0) {
         fprintf(TST_OUTPUT, "%s\n", progress->status == tst_pass ? "pass" : "fail");
@@ -108,6 +103,7 @@ static void tst_default_reporter(struct tst_progress * progress)
 #define TST_FAIL return tst_fail
 
 // setup and teardown for tests in a suite
+// TODO ensure that these get called correctly for each test in a suite
 
 #define TST_SET_SETUP(NAME, DATA) do { \
         tst_setup = NAME; \
@@ -150,7 +146,7 @@ void tst_recover(int sig)
 
 void tst_set_sigsegv_handler(void)
 {
-    // errno has more to say on failure
+    // TODO make this a bit more robust
     if (signal(SIGSEGV, tst_recover) == SIG_ERR)
         fprintf(stderr, "can't set SIGSEGV handler");
 }
@@ -164,15 +160,12 @@ void tst_timeout(int sig)
 
 void tst_set_sigalrm_handler(void)
 {
-    // errno has more to say on failure
+    // TODO make this a bit more robust
     if (signal(SIGALRM, tst_timeout) == SIG_ERR)
         fprintf(stderr, "can't set SIGALRM handler");
 }
 
-// add timeout for test
-                // timed out
-            // crashed in test
-// not very accurate... improve this
+// TODO time estimation using clock() is not very accurate
 #define TST_RUN_TEST(NAME, MESSAGE, ...) do { \
         tst_progress.test += 1; \
         tst_progress.test_name = #NAME; \
