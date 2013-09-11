@@ -2,12 +2,20 @@
 #define TST_H
 
 #include <stdio.h>
-#include <time.h> // clock_t, clock
+#include <time.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
 
+// #define TST_DEFAULT(NAME, VALUE) #ifndef TST_##NAME \
+// #define TST_##NAME VALUE \
+// #endif
+
+// TST_DEFAULT(OUTPUT, stdout)
+// TST_DEFAULT(REPORTER, tst_default_reporter)
+
 #define TST_OUTPUT stdout
+#define TST_REPORTER tst_default_reporter
 
 enum tst_status {
     tst_pass = 0,
@@ -73,18 +81,15 @@ static void tst_default_reporter(struct tst_progress * progress)
         return;
 
     fprintf(TST_OUTPUT, "(%i / ?) %s -- %s ", progress->test, progress->test_name, progress->test_message);
+    fflush(TST_OUTPUT);
 }
 
 // test reporting
 
-#ifndef TST_REPORTER
-#define TST_REPORTER tst_default_reporter
-#endif
-
 // defining tests and suites
 
 #define TST_TEST(NAME, ...) \
-    static unsigned int tst_test_##NAME(__VA_ARGS__)
+    static enum tst_status tst_test_##NAME(__VA_ARGS__)
 
 #define TST_SUITE(NAME) \
     static void tst_suite_##NAME(void)
@@ -115,14 +120,13 @@ static void tst_default_reporter(struct tst_progress * progress)
     } while (0)
 
 // handle command line arguments
-
-// setup a signal handler for SIGSEGV, then run the test
-// do stuff with argc and argv
-// call the last progress update
 #define TST_MAIN(ARGC, ARGV) do { \
+        tst_set_sigsegv_handler(); \
+        tst_set_sigalrm_handler(); \
         TST_REPORTER(NULL); \
     } while (0)
 
+// call the last progress update
 #define TST_MAIN_END do { \
         tst_progress.done = 1; \
         TST_REPORTER(&tst_progress); \
@@ -141,7 +145,7 @@ jmp_buf tst_jmp_buf;
 
 void tst_recover(int sig)
 {
-    longjmp(tst_jmp_buf, 1);
+    siglongjmp(tst_jmp_buf, 1);
 }
 
 void tst_set_sigsegv_handler(void)
@@ -173,13 +177,11 @@ void tst_set_sigalrm_handler(void)
         tst_progress.test += 1; \
         tst_progress.test_name = #NAME; \
         tst_progress.test_message = MESSAGE; \
-        tst_set_sigsegv_handler(); \
-        tst_set_sigalrm_handler(); \
         TST_REPORTER(&tst_progress); \
         tst_test_start_ms = clock(); \
-        if (!setjmp(tst_jmp_buf)) { \
+        if (sigsetjmp(tst_jmp_buf, 0) == 0) { \
             alarm(4); \
-            if (!setjmp(tst_alrm_jmp_buf)) { \
+            if (!sigsetjmp(tst_alrm_jmp_buf, 0)) { \
                 tst_progress.status = tst_test_##NAME(__VA_ARGS__); \
                 tst_progress.test_ms = alarm(0); \
             } else { \
