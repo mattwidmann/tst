@@ -33,6 +33,7 @@ struct tst_progress {
     unsigned int setup_ms;
     unsigned int test_ms;
     unsigned int teardown_ms;
+    unsigned int total_ms;
 
     unsigned int status:3;
     unsigned int done:1;
@@ -40,8 +41,8 @@ struct tst_progress {
 
 // globals
 
-static clock_t tst_all_start_ms;
 static clock_t tst_start_clock;
+static clock_t tst_tmp_clock;
 static void (*tst_setup)(void * data);
 static void * tst_setup_data;
 static void (*tst_teardown)(void * data);
@@ -52,15 +53,15 @@ static struct tst_progress tst_progress = {
     /* test_name */    NULL,
     /* test_message */ NULL,
     /* file */         NULL,
-    /* line */         0,
-    /* suite */        0,
-    /* test */         0,
-    /* tests_in_suite */         0,
+    /* line */          0,
+    /* suite */         0,
+    /* test */          0,
+    /* test_in_suite */ 0,
     /* setup_ms */      0,
-    /* test_ms */      0,
-    /* teardown_ms */      0,
-    /* status */       0,
-    /* done */         0
+    /* test_ms */       0,
+    /* teardown_ms */   0,
+    /* status */        0,
+    /* done */          0
 };
 
 static void tst_default_reporter(struct tst_progress * progress)
@@ -116,15 +117,17 @@ static void tst_default_reporter(struct tst_progress * progress)
 
 // handle command line arguments
 #define TST_MAIN(ARGC, ARGV) do {  \
+        tst_start_clock = clock(); \
         tst_set_sigsegv_handler(); \
         tst_set_sigalrm_handler(); \
         TST_REPORTER(NULL);        \
     } while (0)
 
 // call the last progress update
-#define TST_MAIN_END do {            \
-        tst_progress.done = 1;       \
-        TST_REPORTER(&tst_progress); \
+#define TST_MAIN_END do {                                     \
+        tst_progress.done = 1;                                \
+        tst_progress.total_ms = TST_MS_FROM(tst_start_clock); \
+        TST_REPORTER(&tst_progress);                          \
     } while (0)
 
 // run suites and tests
@@ -172,39 +175,39 @@ static void tst_set_sigalrm_handler(void)
 
 #define TST_MS_FROM(CLOCK) (unsigned long)(clock() - CLOCK) / CLOCKS_PER_SEC / 1000
 
-// TODO time estimation using clock() is not very accurate
-#define TST_RUN_TEST(NAME, MESSAGE, ...) do {                        \
-        tst_progress.test += 1;                                      \
-        tst_progress.test_name = #NAME;                              \
-        tst_progress.test_message = MESSAGE;                         \
-        TST_REPORTER(&tst_progress);                                 \
-        if (tst_setup) {                                             \
-            tst_start_clock = clock();                               \
-            tst_setup(tst_setup_data);                               \
-            tst_progress.setup_ms = TST_MS_FROM(tst_start_clock);    \
-        } else {                                                     \
-            tst_progress.setup_ms = 0;                               \
-        }                                                            \
-        tst_start_clock = clock();                                   \
-        if (sigsetjmp(tst_jmp_buf, 0) == 0) {                        \
-            alarm(4);                                                \
-            if (!sigsetjmp(tst_alrm_jmp_buf, 0)) {                   \
-                tst_progress.status = tst_test_##NAME(__VA_ARGS__);  \
-            } else {                                                 \
-                tst_progress.status = tst_time;                      \
-            }                                                        \
-        } else {                                                     \
-            tst_progress.status = tst_crash;                         \
-        }                                                            \
-        tst_progress.test_ms = TST_MS_FROM(tst_start_clock);         \
-        if (tst_teardown) {                                          \
-            tst_start_clock = clock();                               \
-            tst_teardown(tst_teardown_data);                         \
-            tst_progress.teardown_ms = TST_MS_FROM(tst_start_clock); \
-        } else {                                                     \
-            tst_progress.teardown_ms = 0;                            \
-        }                                                            \
-        tst_progress.test_in_suite += 1;                             \
+#define TST_RUN_TEST(NAME, MESSAGE, ...) do {                       \
+        tst_progress.test += 1;                                     \
+        tst_progress.test_name = #NAME;                             \
+        tst_progress.test_message = MESSAGE;                        \
+        tst_progress.total_ms = TST_MS_FROM(tst_start_clock);       \
+        TST_REPORTER(&tst_progress);                                \
+        if (tst_setup) {                                            \
+            tst_tmp_clock = clock();                                \
+            tst_setup(tst_setup_data);                              \
+            tst_progress.setup_ms = TST_MS_FROM(tst_tmp_clock);     \
+        } else {                                                    \
+            tst_progress.setup_ms = 0;                              \
+        }                                                           \
+        tst_tmp_clock = clock();                                    \
+        if (sigsetjmp(tst_jmp_buf, 0) == 0) {                       \
+            alarm(4);                                               \
+            if (!sigsetjmp(tst_alrm_jmp_buf, 0)) {                  \
+                tst_progress.status = tst_test_##NAME(__VA_ARGS__); \
+            } else {                                                \
+                tst_progress.status = tst_time;                     \
+            }                                                       \
+        } else {                                                    \
+            tst_progress.status = tst_crash;                        \
+        }                                                           \
+        tst_progress.test_ms = TST_MS_FROM(tst_tmp_clock);          \
+        if (tst_teardown) {                                         \
+            tst_tmp_clock = clock();                                \
+            tst_teardown(tst_teardown_data);                        \
+            tst_progress.teardown_ms = TST_MS_FROM(tst_tmp_clock);  \
+        } else {                                                    \
+            tst_progress.teardown_ms = 0;                           \
+        }                                                           \
+        tst_progress.test_in_suite += 1;                            \
     } while (0)
 
 #endif
