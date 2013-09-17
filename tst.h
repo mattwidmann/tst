@@ -17,13 +17,13 @@
 #define TST_OUTPUT stdout
 #define TST_REPORTER tst_default_reporter
 
-enum tst_status {
+static enum tst_status {
     tst_pass = 0,
     tst_fail,
     tst_crash
 };
 
-struct tst_progress {
+static struct tst_progress {
     char * suite_name;
     char * test_name;
     char * test_message;
@@ -137,28 +137,28 @@ static void tst_default_reporter(struct tst_progress * progress)
         tst_suite_##NAME(); \
     } while (0)
 
-jmp_buf tst_jmp_buf;
+static jmp_buf tst_jmp_buf;
 
-void tst_recover(int sig)
+static void tst_recover(int sig)
 {
     siglongjmp(tst_jmp_buf, 1);
 }
 
-void tst_set_sigsegv_handler(void)
+static void tst_set_sigsegv_handler(void)
 {
     // TODO make this a bit more robust
     if (signal(SIGSEGV, tst_recover) == SIG_ERR)
         fprintf(stderr, "can't set SIGSEGV handler");
 }
 
-jmp_buf tst_alrm_jmp_buf;
+static jmp_buf tst_alrm_jmp_buf;
 
-void tst_timeout(int sig)
+static void tst_timeout(int sig)
 {
     longjmp(tst_alrm_jmp_buf, 1);
 }
 
-void tst_set_sigalrm_handler(void)
+static void tst_set_sigalrm_handler(void)
 {
     // TODO make this a bit more robust
     if (signal(SIGALRM, tst_timeout) == SIG_ERR)
