@@ -11,6 +11,10 @@ The next step in setting up a test environment is to define what tests belong to
 
 To run tests in a test suite, use `TST_RUN_TEST`, and specify the name of the test to run (as well as the arguments the test takes, if making use of this feature).
 
+Status
+------
+
+Argument parsing is not implemented, nor are any complex test reporters.
 
 Usage
 -----
@@ -83,3 +87,27 @@ Test Cases
 
 Tests can only pass if they `return 0` or use the `PASS` macro. The `FAIL` and `SKIP` macros will register the test as a failure or skipped, respecively. A function that causes a `SIGSEGV` or other abnormal failure will register as a crash, but execution of tests will continue. Tests that take longer than `CONTEST_TIMEOUT` (default is 5 seconds) will cause the test to register as timed out.
 
+License
+-------
+
+The MIT License (MIT)
+
+Copyright (c) 2013 Matt Widmann
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
